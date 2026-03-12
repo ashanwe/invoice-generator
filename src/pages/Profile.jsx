@@ -8,8 +8,9 @@ export default function Profile() {
     full_name: '', email: '', address: '',
     bank_name: '', bank_account_name: '', bank_account_number: '', bank_routing: ''
   })
-  const [logoFile, setLogoFile]     = useState(null)
-  const [logoPreview, setLogoPreview] = useState(null)
+  const [logoFile, setLogoFile]         = useState(null)
+  const [logoPreview, setLogoPreview]   = useState(null)
+  const [logoRemoved, setLogoRemoved]   = useState(false)
   const [saving, setSaving]   = useState(false)
   const [saved, setSaved]     = useState(false)
 
@@ -33,11 +34,12 @@ export default function Profile() {
     if (!file) return
     setLogoFile(file)
     setLogoPreview(URL.createObjectURL(file))
+    setLogoRemoved(false)
   }
 
   const handleSave = async () => {
     setSaving(true); setSaved(false)
-    let logo_url = profile?.logo_url || null
+    let logo_url = logoRemoved ? null : (profile?.logo_url || null)
 
     // Upload logo if changed
     if (logoFile) {
@@ -92,7 +94,7 @@ export default function Profile() {
                 <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
               </label>
               {logoPreview && (
-                <button onClick={() => { setLogoPreview(null); setLogoFile(null) }}
+                <button onClick={() => { setLogoPreview(null); setLogoFile(null); setLogoRemoved(true) }}
                   className="text-red-400 text-xs hover:text-red-300 text-left">Remove</button>
               )}
               <p className="text-slate-500 text-xs">PNG, JPG up to 2MB</p>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { PDFViewer, PDFDownloadLink } from '@react-pdf/renderer'
 import { InvoicePDF } from '../templates/InvoicePDF'
 import { supabase } from '../lib/supabase'
@@ -42,12 +42,16 @@ export default function NewInvoice() {
   const [errors, setErrors]         = useState({})
   const [saving, setSaving]         = useState(false)
   const [saveDone, setSaveDone]     = useState(false)
+  const profileFilled               = useRef(false)
 
   useEffect(() => setIsClient(true), [])
 
-  // Pre-fill from profile once loaded
+  // Pre-fill from profile ONCE only — never overwrite user edits
   useEffect(() => {
-    if (profile) setForm(emptyForm(profile))
+    if (profile && !profileFilled.current) {
+      profileFilled.current = true
+      setForm(emptyForm(profile))
+    }
   }, [profile])
 
   // Items
