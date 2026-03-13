@@ -17,7 +17,7 @@ export default function Welcome() {
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500 rounded-full opacity-10 blur-3xl pointer-events-none" />
 
       {/* Nav */}
-      <nav className="relative z-10 flex justify-between items-center px-8 py-5">
+      <nav className="relative z-10 flex justify-between items-center px-4 sm:px-8 py-4">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center font-black text-white text-sm">IV</div>
           <span className="text-white font-bold text-lg tracking-tight">InvoiceFlow</span>
@@ -35,13 +35,13 @@ export default function Welcome() {
       </nav>
 
       {/* Hero */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 py-16">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4 py-10">
         <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 text-blue-300 text-xs font-semibold mb-8 backdrop-blur-sm">
           <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
           Professional Invoice Generator
         </div>
 
-        <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight tracking-tight">
+        <h1 className="text-4xl md:text-7xl font-black text-white mb-6 leading-tight tracking-tight">
           Invoices that get<br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
             you paid faster

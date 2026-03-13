@@ -48,7 +48,10 @@ export default function Profile() {
       const { error: uploadError } = await supabase.storage
         .from('logos')
         .upload(path, logoFile, { upsert: true })
-      if (!uploadError) {
+      if (uploadError) {
+        console.error('Logo upload error:', uploadError.message)
+        alert(`Logo upload failed: ${uploadError.message}\n\nProfile will be saved without the logo.`)
+      } else {
         const { data } = supabase.storage.from('logos').getPublicUrl(path)
         logo_url = data.publicUrl + '?t=' + Date.now()
       }
@@ -58,7 +61,10 @@ export default function Profile() {
       .from('profiles')
       .upsert({ id: user.id, ...form, logo_url, updated_at: new Date().toISOString() })
 
-    if (!error) {
+    if (error) {
+      console.error('Profile save error:', error.message)
+      alert(`Save failed: ${error.message}`)
+    } else {
       await refreshProfile()
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
@@ -71,7 +77,7 @@ export default function Profile() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-950 p-8">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto w-full">
 
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Profile Settings</h1>
@@ -105,7 +111,7 @@ export default function Profile() {
         {/* Personal Info */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-4">
           <h2 className="text-sm font-bold text-white mb-4">Your Details</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={label}>Full Name / Company</label>
               <input className={inp} placeholder="Your name or company"
@@ -132,7 +138,7 @@ export default function Profile() {
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-6">
           <h2 className="text-sm font-bold text-white mb-1">Bank Details</h2>
           <p className="text-slate-500 text-xs mb-4">Shown at the bottom of every invoice</p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={label}>Bank Name</label>
               <input className={inp} placeholder="e.g. Chase Bank"
