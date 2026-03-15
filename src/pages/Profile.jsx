@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../hooks/useToast'
+import { Toast } from '../components/Toast'
 
 export default function Profile() {
   const { user, profile, refreshProfile } = useAuth()
+  const { toasts, toast, remove } = useToast()
   const [form, setForm]     = useState({
     full_name: '', email: '', address: '',
     bank_name: '', bank_account_name: '', bank_account_number: '', bank_routing: ''
@@ -12,7 +15,6 @@ export default function Profile() {
   const [logoPreview, setLogoPreview]   = useState(null)
   const [logoRemoved, setLogoRemoved]   = useState(false)
   const [saving, setSaving]   = useState(false)
-  const [saved, setSaved]     = useState(false)
 
   useEffect(() => {
     if (profile) {
@@ -38,7 +40,7 @@ export default function Profile() {
   }
 
   const handleSave = async () => {
-    setSaving(true); setSaved(false)
+    setSaving(true)
     let logo_url = logoRemoved ? null : (profile?.logo_url || null)
 
     // Upload logo if changed
@@ -50,7 +52,7 @@ export default function Profile() {
         .upload(path, logoFile, { upsert: true })
       if (uploadError) {
         console.error('Logo upload error:', uploadError.message)
-        alert(`Logo upload failed: ${uploadError.message}\n\nProfile will be saved without the logo.`)
+        toast(`Logo upload failed: ${uploadError.message}. Profile saved without logo.`, 'warning')
       } else {
         const { data } = supabase.storage.from('logos').getPublicUrl(path)
         logo_url = data.publicUrl + '?t=' + Date.now()
@@ -63,11 +65,11 @@ export default function Profile() {
 
     if (error) {
       console.error('Profile save error:', error.message)
-      alert(`Save failed: ${error.message}`)
+      toast(`Save failed: ${error.message}`, 'error')
     } else {
       await refreshProfile()
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
+      toast('Profile saved!', 'success')
+      await refreshProfile()
     }
     setSaving(false)
   }
@@ -76,7 +78,8 @@ export default function Profile() {
   const label = 'text-xs font-semibold text-slate-400 mb-1.5 block uppercase tracking-wide'
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-950 p-8">
+    <div className="flex-1 overflow-y-auto bg-slate-950 p-4 md:p-8">
+      <Toast toasts={toasts} remove={remove} />
       <div className="max-w-2xl mx-auto w-full">
 
         <div className="mb-6">
@@ -169,7 +172,7 @@ export default function Profile() {
         {/* Save */}
         <button onClick={handleSave} disabled={saving}
           className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg shadow-blue-600/20">
-          {saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save Profile'}
+          {saving ? 'Saving...' : 'Save Profile'}
         </button>
 
       </div>

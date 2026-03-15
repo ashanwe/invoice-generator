@@ -38,14 +38,14 @@ export default function UpgradeModal({ onClose, currentCredits = 0 }) {
 
   const selectedPack = PACKS.find(p => p.id === selected)
 
+  const [comingSoon, setComingSoon] = useState(false)
+
   const handlePurchase = async () => {
     setLoading(true)
-    // ── Payment integration goes here ──
-    // e.g. Stripe: redirect to checkout session
-    // e.g. PayPal: open PayPal window
-    // For now show a coming soon alert
-    alert(`Payment coming soon!\n\nYou selected: ${selectedPack.credits} credits for $${selectedPack.price}\n\nConnect Stripe or PayPal to enable payments.`)
+    // Payment integration goes here — Stripe / PayPal / Payoneer
+    await new Promise(r => setTimeout(r, 600)) // simulate
     setLoading(false)
+    setComingSoon(true)
   }
 
   return (
@@ -126,13 +126,17 @@ export default function UpgradeModal({ onClose, currentCredits = 0 }) {
 
         {/* Footer */}
         <div className="px-6 pb-6 flex flex-col gap-3">
-          <button onClick={handlePurchase} disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black py-3.5 rounded-xl text-sm transition shadow-lg shadow-blue-600/20">
-            {loading
-              ? 'Processing...'
-              : `Buy ${selectedPack?.credits} credits — $${selectedPack?.price}`
-            }
-          </button>
+          {comingSoon ? (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-center">
+              <p className="text-amber-400 font-bold text-sm">🚧 Payments coming soon!</p>
+              <p className="text-amber-400/70 text-xs mt-1">We're integrating a payment gateway. Check back shortly.</p>
+            </div>
+          ) : (
+            <button onClick={handlePurchase} disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black py-3.5 rounded-xl text-sm transition shadow-lg shadow-blue-600/20">
+              {loading ? 'Processing...' : `Buy ${selectedPack?.credits} credits — $${selectedPack?.price}`}
+            </button>
+          )}
           <p className="text-center text-slate-600 text-xs">
             Secure payment · Credits never expire · No subscription
           </p>

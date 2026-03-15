@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../hooks/useToast'
+import { Toast } from '../components/Toast'
+import { ConfirmModal } from '../components/ConfirmModal'
 
 const fmt     = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0)
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
@@ -29,16 +32,14 @@ export default function Admin() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(null)
   const [search, setSearch]   = useState('')
-  const [toast, setToast]     = useState(null)
+  const { toasts, toast, remove } = useToast()
+  const [confirm, setConfirm]   = useState(null) // { type, user }
   const [pricingConfig, setPricingConfig] = useState(null)
   const [saving, setSaving] = useState({}) // { banner: bool, freeCredits: bool, monthly: bool, discounts: bool, packs: bool }
 
   useEffect(() => { fetchAll() }, [])
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
-  }
+  const showToast = (msg, type = 'success') => toast(msg, type)
 
   const fetchAll = async () => {
     setLoading(true)
@@ -75,48 +76,52 @@ export default function Admin() {
   }
 
   const handleDelete = async (u) => {
-    if (!confirm(`Delete user ${u.email}? This cannot be undone.`)) return
     setActionLoading(u.id + '_delete')
     const { error } = await supabase.rpc('admin_delete_user', { target_user_id: u.id })
     if (error) showToast(error.message, 'error')
     else { setUsers(p => p.filter(x => x.id !== u.id)); showToast(`${u.email} deleted.`) }
     setActionLoading(null)
+    setConfirm(null)
   }
 
-  const [creditInputs, setCreditInputs] = useState({}) // { userId: value }
+  const [creditInputs, setCreditInputs] = useState({})
 
-  const handleGrantCredits = async (u, amount) => {
-    setActionLoading(u.id + '_credits')
-    const { error } = await supabase.rpc('admin_grant_credits', {
-      target_user_id: u.id,
-      credit_amount: amount
+  const saveCredits = async (u, newVal) => {
+    const { error } = await supabase.rpc('set_user_credits', {
+      target_id: u.id,
+      new_credits: newVal,
     })
-    if (error) showToast(error.message, 'error')
-    else {
-      setUsers(p => p.map(x => x.id === u.id
-        ? { ...x, invoice_credits: (x.invoice_credits || 0) + amount }
-        : x
-      ))
-      showToast(`+${amount} credits granted to ${u.email}`)
-      if (u.id === user?.id) refreshProfile()
+    if (error) {
+      console.error('set_user_credits error:', error)
+      showToast(error.message, 'error')
+      return false
     }
-    setActionLoading(null)
+    setUsers(p => p.map(x => x.id === u.id ? { ...x, invoice_credits: newVal } : x))
+    if (u.id === user?.id) await refreshProfile()
+    return true
   }
 
   const handleSetCredits = async (u) => {
     const val = parseInt(creditInputs[u.id])
     if (isNaN(val) || val < 0) return showToast('Enter a valid number', 'error')
     setActionLoading(u.id + '_credits')
-    const { error } = await supabase.rpc('admin_set_credits', {
-      target_user_id: u.id,
-      credit_amount: val
-    })
-    if (error) showToast(error.message, 'error')
-    else {
-      setUsers(p => p.map(x => x.id === u.id ? { ...x, invoice_credits: val } : x))
+    const ok = await saveCredits(u, val)
+    if (ok) {
       setCreditInputs(p => ({ ...p, [u.id]: '' }))
       showToast(`Credits set to ${val} for ${u.email}`)
-      if (u.id === user?.id) refreshProfile()
+    }
+    setActionLoading(null)
+  }
+
+  const handleGrantCredits = async (u, amount) => {
+    const val = parseInt(creditInputs[u.id] || amount)
+    if (isNaN(val) || val <= 0) return showToast('Enter a valid number', 'error')
+    setActionLoading(u.id + '_credits')
+    const newVal = (u.invoice_credits || 0) + val
+    const ok = await saveCredits(u, newVal)
+    if (ok) {
+      setCreditInputs(p => ({ ...p, [u.id]: '' }))
+      showToast(`+${val} credits added → now ${newVal} for ${u.email}`)
     }
     setActionLoading(null)
   }
@@ -157,14 +162,17 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col">
 
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-xl text-sm font-semibold shadow-2xl ${
-          toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'
-        }`}>
-          {toast.type === 'error' ? '✕ ' : '✓ '}{toast.msg}
-        </div>
-      )}
+      <Toast toasts={toasts} remove={remove} />
+
+      <ConfirmModal
+        open={confirm?.type === 'delete'}
+        title="Delete User"
+        message={`Permanently delete ${confirm?.user?.email}? All their invoices will also be deleted. This cannot be undone.`}
+        confirmLabel="Delete User"
+        variant="danger"
+        onConfirm={() => handleDelete(confirm.user)}
+        onCancel={() => setConfirm(null)}
+      />
 
       {/* Top nav */}
       <header className="border-b border-gray-800 bg-gray-900 px-4 py-3 flex items-center justify-between flex-none">
@@ -532,7 +540,8 @@ export default function Admin() {
                               </button>
                             )}
                             {!u.is_admin && (
-                              <button onClick={() => handleDelete(u)} disabled={actionLoading === u.id + '_delete'}
+                              <button onClick={() => setConfirm({ type: 'delete', user: u })}
+                                disabled={actionLoading === u.id + '_delete'}
                                 className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 px-3 py-1.5 rounded-lg text-xs font-semibold transition disabled:opacity-40">
                                 {actionLoading === u.id + '_delete' ? '...' : '🗑 Delete'}
                               </button>

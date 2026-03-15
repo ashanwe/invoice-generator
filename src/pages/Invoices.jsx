@@ -4,6 +4,9 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { PDFViewer, PDFDownloadLink } from '@react-pdf/renderer'
 import { InvoicePDF } from '../templates/InvoicePDF'
+import { useToast } from '../hooks/useToast'
+import { Toast } from '../components/Toast'
+import { ConfirmModal } from '../components/ConfirmModal'
 
 const STATUS_COLORS = {
   draft: 'bg-slate-700 text-slate-300',
@@ -14,11 +17,13 @@ const STATUS_COLORS = {
 export default function Invoices() {
   const { user }                = useAuth()
   const navigate                = useNavigate()
+  const { toasts, toast, remove } = useToast()
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading]   = useState(true)
   const [deleting, setDeleting] = useState(null)
   const [isClient, setIsClient] = useState(false)
   const [viewInv, setViewInv]   = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null) // invoice to delete
 
   useEffect(() => { setIsClient(true); fetchInvoices() }, [])
 
@@ -33,17 +38,21 @@ export default function Invoices() {
     setLoading(false)
   }
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this invoice?')) return
-    setDeleting(id)
-    await supabase.from('invoices').delete().eq('id', id)
-    setInvoices(p => p.filter(i => i.id !== id))
+  const handleDelete = async (inv) => {
+    setDeleting(inv.id)
+    await supabase.from('invoices').delete().eq('id', inv.id)
+    setInvoices(p => p.filter(i => i.id !== inv.id))
     setDeleting(null)
+    setConfirmDelete(null)
+    toast('Invoice deleted', 'success')
   }
+
+  const handleDeleteClick = (inv) => setConfirmDelete(inv)
 
   const updateStatus = async (id, status) => {
     await supabase.from('invoices').update({ status }).eq('id', id)
     setInvoices(p => p.map(i => i.id === id ? { ...i, status } : i))
+    toast(`Status updated to ${status}`, 'success')
   }
 
   const buildInvoice = (inv) => ({
@@ -69,6 +78,16 @@ export default function Invoices() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-950 p-4 md:p-8">
+      <Toast toasts={toasts} remove={remove} />
+      <ConfirmModal
+        open={!!confirmDelete}
+        title="Delete Invoice"
+        message={`Delete invoice ${confirmDelete?.invoice_number} to ${confirmDelete?.to_data?.name || 'client'}? This cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => handleDelete(confirmDelete)}
+        onCancel={() => setConfirmDelete(null)}
+      />
       <div className="max-w-4xl mx-auto">
 
         {/* Header */}
@@ -159,7 +178,7 @@ export default function Invoices() {
                   </PDFDownloadLink>
 
                   {/* Delete */}
-                  <button onClick={() => handleDelete(inv.id)} disabled={deleting === inv.id}
+                  <button onClick={() => handleDeleteClick(inv)} disabled={deleting === inv.id}
                     className="text-slate-600 hover:text-red-400 transition text-base px-1">
                     {deleting === inv.id ? '...' : '🗑'}
                   </button>

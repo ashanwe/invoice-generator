@@ -5,6 +5,9 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { v4 as uuidv4 } from 'uuid'
 import UpgradeModal from '../components/UpgradeModal'
+import { useToast } from '../hooks/useToast'
+import { Toast } from '../components/Toast'
+import { ConfirmModal } from '../components/ConfirmModal'
 
 const TABS = [
   { id: 'details', label: '1  Details', icon: '🏢' },
@@ -36,6 +39,8 @@ const emptyForm = (profile) => ({
 
 export default function NewInvoice() {
   const { user, profile, refreshProfile } = useAuth()
+  const { toasts, toast, remove }         = useToast()
+  const [confirmSave, setConfirmSave]     = useState(false)
   const [form, setForm]                  = useState(() => emptyForm(null))
   const [processedInvoice, setProcessed] = useState(null)
   const [isClient, setIsClient]          = useState(false)
@@ -115,6 +120,9 @@ export default function NewInvoice() {
       setSaveDone(true)
       setTimeout(() => setSaveDone(false), 3000)
       await refreshProfile()
+      toast('Invoice saved! 1 credit used.', 'success')
+    } else {
+      toast(`Save failed: ${error.message}`, 'error')
     }
     setSaving(false)
   }
@@ -155,7 +163,7 @@ export default function NewInvoice() {
         )}
         {processedInvoice && (
           <div className="flex gap-2 flex-wrap justify-end">
-            <button onClick={handleSave} disabled={saving}
+            <button onClick={() => setConfirmSave(true)} disabled={saving}
               className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
               {saving ? 'Saving...' : saveDone ? '✓ Saved!' : '💾 Save'}
             </button>
@@ -458,6 +466,23 @@ export default function NewInvoice() {
           currentCredits={profile?.invoice_credits ?? 5}
         />
       )}
+
+      {/* Confirm save modal */}
+      <ConfirmModal
+        open={confirmSave}
+        title="Save Invoice?"
+        message={profile?.is_admin
+          ? `Save invoice #${processedInvoice?.invoiceNumber} to your account?`
+          : `Save invoice #${processedInvoice?.invoiceNumber}? This will use 1 credit. You have ${profile?.invoice_credits ?? 0} remaining.`
+        }
+        confirmLabel="Save Invoice"
+        cancelLabel="Cancel"
+        variant="primary"
+        onConfirm={() => { setConfirmSave(false); handleSave() }}
+        onCancel={() => setConfirmSave(false)}
+      />
+
+      <Toast toasts={toasts} remove={remove} />
 
     </div>
   )

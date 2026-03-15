@@ -198,6 +198,7 @@ export default function ComingSoon() {
     </div>
   )
 }
+
 // import { useState } from 'react'
 // import { useNavigate } from 'react-router-dom'
 // import { useAuth } from '../context/AuthContext'
@@ -231,6 +232,7 @@ export default function ComingSoon() {
 // // ── Monthly plan picker sub-component ──────────────────────
 // function MonthlyPlanPicker({ config, features, user, navigate }) {
 //   const [months, setMonths] = useState(1)
+//   const [comingSoon, setComingSoon] = useState(false)
 
 //   const basePrice     = Number(config.monthly_base_price)
 //   const firstDisc     = Number(config.first_month_discount) / 100
@@ -350,15 +352,20 @@ export default function ComingSoon() {
 //         </div>
 
 //         {/* CTA */}
-//         <button
-//           onClick={() => user
-//             ? alert(`Coming soon!\n\nPlan: ${months} month${months > 1 ? 's' : ''}\nTotal: $${totalDue}\n\nConnect Stripe or PayPal to enable payments.`)
-//             : navigate('/login?tab=signup')}
-//           className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-black py-4 rounded-xl text-sm transition shadow-lg shadow-blue-600/20">
-//           {user
-//             ? `Subscribe — $${totalDue} for ${months} month${months > 1 ? 's' : ''} →`
-//             : 'Sign up to subscribe →'}
-//         </button>
+//         {comingSoon ? (
+//           <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-center">
+//             <p className="text-amber-400 font-bold text-sm">🚧 Payments coming soon!</p>
+//             <p className="text-amber-400/70 text-xs mt-1">We're integrating a payment gateway. Check back shortly.</p>
+//           </div>
+//         ) : (
+//           <button
+//             onClick={() => user ? setComingSoon(true) : navigate('/login?tab=signup')}
+//             className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-black py-4 rounded-xl text-sm transition shadow-lg shadow-blue-600/20">
+//             {user
+//               ? `Subscribe — $${totalDue} for ${months} month${months > 1 ? 's' : ''} →`
+//               : 'Sign up to subscribe →'}
+//           </button>
+//         )}
 //         <p className="text-center text-slate-600 text-xs mt-3">
 //           Cancel anytime · Secure checkout · Credits never expire
 //         </p>
