@@ -6,6 +6,7 @@ import Welcome          from './pages/Welcome'
 import Login            from './pages/Login'
 import Dashboard        from './pages/Dashboard'
 import Admin            from './pages/Admin'
+import Pricing          from './pages/Pricing'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Routes>
           <Route path="/"        element={<Welcome />} />
           <Route path="/login"   element={<Login />} />
+          <Route path="/pricing" element={<Pricing />} />
           <Route path="/dashboard/*" element={
             <ProtectedRoute>
               <Dashboard />

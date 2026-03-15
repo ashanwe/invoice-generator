@@ -6,6 +6,7 @@ const NAV = [
   { path: '/dashboard',          icon: '⚡', label: 'New Invoice' },
   { path: '/dashboard/invoices', icon: '📋', label: 'My Invoices' },
   { path: '/dashboard/profile',  icon: '👤', label: 'Profile' },
+  { path: '/pricing',            icon: '💳', label: 'Pricing' },
 ]
 
 export default function Sidebar() {
@@ -59,6 +60,48 @@ export default function Sidebar() {
             </button>
           )
         })}
+
+        {/* Credits widget */}
+        {profile?.is_admin ? (
+          <div className="mt-3 bg-violet-500/10 border border-violet-500/20 rounded-xl p-3 flex items-center gap-2">
+            <span className="text-lg">👑</span>
+            <div>
+              <p className="text-violet-300 text-xs font-bold">Admin Account</p>
+              <p className="text-violet-400/60 text-xs">Unlimited credits</p>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 bg-slate-800/60 border border-slate-700 rounded-xl p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-slate-400">Invoice Credits</span>
+              <span className={`text-xs font-black ${
+                (profile?.invoice_credits ?? 5) === 0
+                  ? 'text-red-400'
+                  : (profile?.invoice_credits ?? 5) <= 2
+                    ? 'text-amber-400'
+                    : 'text-emerald-400'
+              }`}>
+                {profile?.invoice_credits ?? 5} left
+              </span>
+            </div>
+            <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden mb-2">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  (profile?.invoice_credits ?? 5) === 0
+                    ? 'bg-red-500'
+                    : (profile?.invoice_credits ?? 5) <= 2
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-500'
+                }`}
+                style={{ width: `${Math.min(((profile?.invoice_credits ?? 5) / 5) * 100, 100)}%` }}
+              />
+            </div>
+            <button onClick={() => handleNav('/dashboard?upgrade=1')}
+              className="w-full text-xs font-bold text-blue-400 hover:text-blue-300 transition text-left">
+              + Get more credits →
+            </button>
+          </div>
+        )}
       </nav>
 
       {/* User */}

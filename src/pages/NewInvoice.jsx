@@ -4,6 +4,7 @@ import { InvoicePDF } from '../templates/InvoicePDF'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { v4 as uuidv4 } from 'uuid'
+import UpgradeModal from '../components/UpgradeModal'
 
 const TABS = [
   { id: 'details', label: '1  Details', icon: '🏢' },
@@ -34,7 +35,7 @@ const emptyForm = (profile) => ({
 })
 
 export default function NewInvoice() {
-  const { user, profile }                = useAuth()
+  const { user, profile, refreshProfile } = useAuth()
   const [form, setForm]                  = useState(() => emptyForm(null))
   const [processedInvoice, setProcessed] = useState(null)
   const [isClient, setIsClient]          = useState(false)
@@ -43,6 +44,7 @@ export default function NewInvoice() {
   const [saving, setSaving]              = useState(false)
   const [saveDone, setSaveDone]          = useState(false)
   const [showPreview, setShowPreview]    = useState(false)
+  const [showUpgrade, setShowUpgrade]    = useState(false)
   const profileFilled                    = useRef(false)
 
   useEffect(() => setIsClient(true), [])
@@ -88,6 +90,13 @@ export default function NewInvoice() {
 
   const handleSave = async () => {
     if (!processedInvoice) return
+
+    // Check credits before saving (admins have unlimited)
+    if (!profile?.is_admin && (profile?.invoice_credits ?? 0) <= 0) {
+      setShowUpgrade(true)
+      return
+    }
+
     setSaving(true)
     const { error } = await supabase.from('invoices').insert({
       user_id:        user.id,
@@ -102,7 +111,11 @@ export default function NewInvoice() {
       status:         'draft',
       total_amount:   total,
     })
-    if (!error) { setSaveDone(true); setTimeout(() => setSaveDone(false), 3000) }
+    if (!error) {
+      setSaveDone(true)
+      setTimeout(() => setSaveDone(false), 3000)
+      await refreshProfile()
+    }
     setSaving(false)
   }
 
@@ -120,6 +133,26 @@ export default function NewInvoice() {
       {/* Top bar */}
       <div className="flex-none border-b border-slate-800 bg-slate-900 px-4 py-3 flex justify-between items-center gap-2">
         <h1 className="text-white font-bold text-sm flex-none">New Invoice</h1>
+
+        {/* Credit badge — hidden for admins */}
+        {!profile?.is_admin && (
+        <button onClick={() => setShowUpgrade(true)}
+          className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition ${
+            (profile?.invoice_credits ?? 5) === 0
+              ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20'
+              : (profile?.invoice_credits ?? 5) <= 2
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
+                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+          }`}>
+          <span>⚡</span>
+          <span>{profile?.invoice_credits ?? 5} credits</span>
+        </button>
+        )}
+        {profile?.is_admin && (
+          <span className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border bg-violet-500/10 border-violet-500/20 text-violet-400">
+            👑 Unlimited
+          </span>
+        )}
         {processedInvoice && (
           <div className="flex gap-2 flex-wrap justify-end">
             <button onClick={handleSave} disabled={saving}
@@ -376,6 +409,15 @@ export default function NewInvoice() {
 
           {/* Process button */}
           <div className="flex-none border-t border-slate-800 bg-slate-900 px-4 py-3">
+
+            {/* No credits warning — hidden for admins */}
+            {!profile?.is_admin && (profile?.invoice_credits ?? 5) === 0 && (
+              <button onClick={() => setShowUpgrade(true)}
+                className="w-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold py-2.5 rounded-xl text-xs mb-2 hover:bg-amber-500/20 transition">
+                ⚠️ You have 0 credits — tap to upgrade
+              </button>
+            )}
+
             <button onClick={handleProcess}
               className="w-full bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white font-bold py-3 rounded-xl text-sm transition shadow-lg shadow-blue-600/20">
               ⚡ Process Invoice
@@ -388,7 +430,7 @@ export default function NewInvoice() {
           </div>
         </div>
 
-        {/* ── PDF PREVIEW — hidden on mobile unless showPreview, full width or right panel ── */}
+        {/* ── PDF PREVIEW — hidden on mobile unless showPreview ── */}
         <div className={`flex-col items-center justify-center bg-slate-950 overflow-hidden
           ${showPreview ? 'flex w-full' : 'hidden'}
           md:flex md:w-auto md:flex-1`}>
@@ -408,6 +450,15 @@ export default function NewInvoice() {
         </div>
 
       </div>
+
+      {/* Upgrade modal */}
+      {showUpgrade && (
+        <UpgradeModal
+          onClose={() => setShowUpgrade(false)}
+          currentCredits={profile?.invoice_credits ?? 5}
+        />
+      )}
+
     </div>
   )
 }

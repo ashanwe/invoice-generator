@@ -32,7 +32,7 @@ export default function Login() {
         options: { data: { full_name: fullName } }
       })
       if (error) msg('error', error.message)
-      else msg('success', 'Account created! Check your email to confirm, then sign in.')
+      else msg('confirm', `We've sent a confirmation email to ${email}. Please check your inbox and click the link to activate your account.`)
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) msg('error', error.message)
@@ -110,7 +110,16 @@ export default function Login() {
           </div>
 
           {/* Message */}
-          {message && (
+          {message && message.type === 'confirm' ? (
+            <div className="mt-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl p-5 text-center">
+              <div className="text-3xl mb-3">📬</div>
+              <p className="text-white font-bold text-sm mb-1">Check your inbox!</p>
+              <p className="text-slate-400 text-xs leading-relaxed">{message.text}</p>
+              <p className="text-slate-600 text-xs mt-3">Didn't receive it? Check your spam folder or{' '}
+                <button onClick={handleSubmit} className="text-blue-400 hover:underline">resend</button>.
+              </p>
+            </div>
+          ) : message ? (
             <div className={`mt-4 px-4 py-3 rounded-xl text-sm ${
               message.type === 'error'
                 ? 'bg-red-500/10 border border-red-500/20 text-red-400'
@@ -118,7 +127,7 @@ export default function Login() {
             }`}>
               {message.text}
             </div>
-          )}
+          ) : null}
 
           {/* Submit */}
           <button
